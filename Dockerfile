@@ -13,10 +13,7 @@ RUN apt update && apt install -y \
     coreutils \
     && rm -rf /var/lib/apt/lists/*
 
-# Set password root default
-RUN echo 'root:password123' | chpasswd
-
-# Hapus banner bawaan Ubuntu
+# Hilangkan banner bawaan Ubuntu
 RUN rm -f /etc/legal /etc/update-motd.d/*
 
 # Buat banner kustom GWN di /etc/profile agar otomatis muncul saat SSH login
@@ -48,10 +45,16 @@ RUN echo 'clear' >> /etc/profile && \
     echo 'echo "═══════════════════════════════════════════════════════════"' >> /etc/profile && \
     echo 'echo ""' >> /etc/profile
 
-# Script startup SSH & tmate
+# Entrypoint Script
 RUN echo '#!/bin/bash\n\
+if [ -n "$ROOT_PASSWORD" ]; then\n\
+  echo "root:$ROOT_PASSWORD" | chpasswd\n\
+fi\n\
 service ssh start\n\
-tmate -F\n\
+tmate -S /tmp/tmate.sock new-session -d\n\
+tmate -S /tmp/tmate.sock wait tmate-ready\n\
+tmate -S /tmp/tmate.sock display -p "#{tmate_ssh}" > /tmp/tmate_ssh.txt\n\
+tail -f /dev/null\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 22
